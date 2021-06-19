@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <report
+            id="action_reporte_cierre"
+            string="Cierre de caja"
+            model="pos.session"
+            report_type="qweb-pdf"
+            file="pos_ticket_cierre.reporte_cierre"
+            name="pos_ticket_cierre.reporte_cierre"
+            paperformat="paperformat_ticket"
+            menu="True"
+        />
+
+    </data>
+</odoo>

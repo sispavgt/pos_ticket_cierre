@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="reporte_cierre">
+        <t t-call="web.html_container">
+            <t t-set="data_report_margin_top" t-value="12"/>
+            <t t-set="data_report_header_spacing" t-value="9"/>
+            <t t-set="data_report_dpi" t-value="110"/>
+            <t t-foreach="docs" t-as="o">
+              <div clas="header">
+                  <center>
+                      <div>
+                          <p>
+                              Cierre de caja<br/>
+                              <span t-esc="user.company_id.name"/><br/>
+                              LINEA DE NEGOCIO: <span t-field="o.config_id.analytic_account_id.name"/><br/>
+                              FECHA APERTURA: <span t-esc="o.start_at"/><br/>
+                              FECHA CIERRE: <span t-esc="o.stop_at"/>
+                          </p>
+                      </div>
+                  </center>
+              </div>
+              <div class="page">
+                  <t t-set="total_venta" t-value="0"/>
+                  FECHA EMISIÓN: <span t-esc="fecha_actual()"/>
+                  <h3>PEDIDOS</h3>
+                  <table class="table table-sm" style="width:100%">
+                    <thead>
+                      <tr>
+                          <th>Pedido</th>
+                          <th>Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr t-foreach="o.order_ids" t-as="pedido">
+                          <td>
+                              <span t-field="pedido.name"/>
+                          </td>
+                          <td style="text-align:right">
+                              <span t-field="pedido.amount_total" t-options="{'widget': 'monetary', 'display_currency': o.config_id.company_id.currency_id}"/>
+                          </td>
+                          <t t-set="total_venta" t-value="total_venta+pedido.amount_total"/>
+                      </tr>
+                    </tbody>
+
+                  </table>
+                  <br/>
+                  <h3>PAGOS</h3>
+
+                  <t t-set="transacciones_total_positivas" t-value="0"/>
+                  <t t-set="transacciones_total_negativas" t-value="0"/>
+                  <t t-set="saldo_final" t-value="0"/>
+                  <t t-set="diferencia" t-value="0"/>
+
+                  <table class="table table-sm" style="width:100%">
+                    <thead>
+                      <tr>
+                          <th>Nombre</th>
+                          <th>Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr t-foreach="o.statement_ids" t-as="pago">
+                          <t t-if="pago.journal_id.type == 'cash'">
+                              <t t-if="len(pago.line_ids) > 0">
+                                  <t t-foreach="pago.line_ids" t-as="linea">
+                                      <t t-if="linea.amount &lt; 0 and linea.ref == False">
+                                          <t t-set="diferencia" t-value="diferencia+ linea.amount"/>
+                                      </t>
+                                      <t t-if="linea.amount > 0 and linea.ref == False">
+                                          <t t-set="diferencia" t-value="diferencia+ linea.amount"/>
+                                      </t>
+                                  </t>
+                              </t>
+                          </t>
+                          <td>
+                              <span t-field="pago.journal_id.name"/>
+                          </td>
+                          <td style="text-align:right">
+                              <t t-if="pago.journal_id.type == 'cash'">
+                                  <t t-if="diferencia > 0">
+                                    <span t-esc="pago.total_entry_encoding-diferencia" t-options="{'widget': 'monetary', 'display_currency': o.config_id.company_id.currency_id}"/>
+                                  </t>
+                                  <t t-if="diferencia &lt; 0">
+                                    <span t-esc="pago.total_entry_encoding+(diferencia*-1)" t-options="{'widget': 'monetary', 'display_currency': o.config_id.company_id.currency_id}"/>
+                                  </t>
+                              </t>
+                              <t t-else="">
+                                <span t-field="pago.total_entry_encoding" t-options="{'widget': 'monetary', 'display_currency': o.config_id.company_id.currency_id}"/>
+
+                              </t>
+                          </td>
+                      </tr>
+                    </tbody>
+
+                  </table>
+
+                  <br/>
+                  <table class="table table-sm" style="width:100%">
+                      <tr>
+                          <td>Saldo de apertura Efectivo:</td>
+                          <td><span t-field="o.cash_register_balance_start" t-options="{'widget': 'monetary', 'display_currency': o.config_id.company_id.currency_id}"/></td>
+                      </tr>
+                      <tr>
+                          <td>Saldo teorico final Efectivo:</td>
+                          <td><span t-field="o.cash_register_balance_end" t-options="{'widget': 'monetary', 'display_currency': o.config_id.company_id.currency_id}"/></td>
+                      </tr>
+                      <tr>
+                          <td>Saldo real final Efectivo: </td>
+                          <td>
+                              <t t-if="diferencia > 0">
+                                <span t-esc="o.cash_register_balance_end- diferencia" t-options="{'widget': 'monetary', 'display_currency': o.config_id.company_id.currency_id}"/>
+                              </t>
+                              <t t-if="diferencia  &lt; 0">
+                                <span t-esc="o.cash_register_balance_end + (diferencia * -1)" t-options="{'widget': 'monetary', 'display_currency': o.config_id.company_id.currency_id}"/>
+                              </t>
+                              <t t-if="diferencia == 0">
+                                <span t-esc="o.cash_register_balance_end" t-options="{'widget': 'monetary', 'display_currency': o.config_id.company_id.currency_id}"/>
+                              </t>
+                          </td>
+                      </tr>
+                      <tr>
+                          <td>Diferencia Efectivo:</td>
+                          <td><span t-esc="diferencia" t-options="{'widget': 'monetary', 'display_currency': o.config_id.company_id.currency_id}"/></td>
+                      </tr>
+                  </table>
+                  <br/>
+                  <strong>TOTAL VENTA: <span t-esc="total_venta" t-options="{'widget': 'monetary', 'display_currency': o.config_id.company_id.currency_id}"/> </strong>
+                  <br/>
+                  <br/>
+                  <br/>
+                  Firma encargado.___________________________
+
+              </div>
+
+            </t>
+
+        </t>
+    </template>
+</odoo>
